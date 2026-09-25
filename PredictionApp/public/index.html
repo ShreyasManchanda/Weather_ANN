@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Image Prediction</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-bg: linear-gradient(135deg, #ff477e, #7329b0);
+            --primary-text: #ffffff;
+            --accent-color: #ff477e;
+            --secondary-color: #7329b0;
+        }
+
+        body {
+            background: var(--primary-bg);
+            font-family: 'Roboto', sans-serif;
+            color: var(--primary-text);
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 600px;
+            margin: auto;
+            padding: 2rem;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        input[type="file"] {
+            display: none; /* Hide default file input */
+        }
+
+        .file-input-wrapper {
+            display: inline-block;
+            position: relative;
+            cursor: pointer;
+            padding: 0.75rem 1.5rem;
+            background-color: var(--accent-color);
+            border-radius: 50px;
+            color: var(--primary-text);
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .file-input-wrapper:hover {
+            background-color: var(--secondary-color);
+            transform: scale(1.05);
+        }
+
+        #uploadBtn {
+            padding: 0.75rem 1.5rem;
+            background-color: var(--accent-color);
+            border: none;
+            border-radius: 50px;
+            color: var(--primary-text);
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+            margin-top: 1rem;
+        }
+
+        #uploadBtn:hover {
+            background-color: var(--secondary-color);
+            transform: scale(1.05);
+        }
+
+        #result {
+            margin-top: 1rem;
+            font-size: 1.5rem;
+        }
+
+        #loading {
+            display: none;
+            margin-top: 1rem;
+            font-size: 1.2rem;
+        }
+
+        #error {
+            color: #ffcc00; /* yellow for visibility */
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Upload Image for Prediction</h1>
+        <form id="uploadForm" enctype="multipart/form-data">
+          <label class="file-input-wrapper">
+              Choose Image
+              <input type="file" id="imageInput" name="image" accept="image/*" required />
+          </label>
+          <button type="submit" id="uploadBtn">Upload</button>
+      </form>
+        <div id="loading">Processing...</div>
+        <div id="result"></div>
+        <div id="error"></div>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').onsubmit = async function (e) {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('image', document.getElementById('imageInput').files[0]);
+
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            const error = document.getElementById('error');
+
+            loading.style.display = 'block'; // Show loading indicator
+            result.innerHTML = ''; // Clear previous results
+            error.innerHTML = ''; // Clear previous errors
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                // Check if the response status is OK (200-299)
+                if (!response.ok) {
+                    const errorData = await response.json(); // Try to parse the error response
+                    throw new Error(`Error: ${errorData.error || 'Unknown error occurred.'}`);
+                }
+
+                // Parse the JSON response
+                const data = await response.json();
+                if (data.prediction) {
+                    result.innerHTML = `<p>Prediction: ${data.prediction}</p>`;
+                } else {
+                    throw new Error(`Unexpected response format: ${JSON.stringify(data)}`);
+                }
+            } catch (err) {
+                console.error('Error during fetch:', err); // Log the error to the console for debugging
+                error.innerHTML = `Error: ${err.message}`; // Show user-friendly error message
+            } finally {
+                loading.style.display = 'none'; // Hide loading indicator
+            }
+        };
+
+        // Optional: Add a preview of the image before upload
+        document.getElementById('imageInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imgPreview = document.createElement('img');
+                    imgPreview.src = e.target.result;
+                    imgPreview.style.maxWidth = '100%';
+                    imgPreview.style.maxHeight = '300px';
+                    imgPreview.style.borderRadius = '5px';
+                    document.body.appendChild(imgPreview);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+</body>
+</html>
